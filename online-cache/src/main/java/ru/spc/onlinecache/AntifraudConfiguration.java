@@ -26,6 +26,7 @@ public class AntifraudConfiguration {
         IgniteConfiguration igniteConfiguration = new IgniteConfiguration();
         igniteConfiguration.setPeerClassLoadingEnabled(true);
         igniteConfiguration.setDiscoverySpi(new TcpDiscoverySpi().setLocalAddress("127.0.0.1"));
+        igniteConfiguration.setWorkDirectory("/tmp");
         igniteConfiguration.setCacheConfiguration(cacheConfiguration);
 
         return Ignition.start(igniteConfiguration);
