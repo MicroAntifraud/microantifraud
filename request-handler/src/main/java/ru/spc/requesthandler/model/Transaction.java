@@ -6,7 +6,7 @@ import java.io.Serializable;
 
 @Data
 public class Transaction implements Serializable {
-    private String requestId;
-    private String userId;
-    private Long amount;
+    Long requestId;
+    Integer userId;
+    Integer amount;
 }
