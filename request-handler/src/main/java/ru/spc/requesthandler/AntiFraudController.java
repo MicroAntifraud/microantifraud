@@ -1,9 +1,8 @@
 package ru.spc.requesthandler;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/v1/")
@@ -14,14 +13,14 @@ public class AntiFraudController {
         this.service = service;
     }
 
-    @GetMapping("antifraud/{id}")
-    public String getSomething(@PathVariable int id) {
-        String verdict = service.getVerdict(id);
-
+    @PostMapping("antifraud")
+    public ResponseEntity<String> checkTransaction(@RequestBody Transaction transaction) {
+        String verdict = service.getVerdict(transaction);
         if (verdict == null) {
-            verdict = "lol";
+            return new ResponseEntity<>("lol", HttpStatus.OK);
         }
-        service.saveTransaction(id, id + "Goga");
-        return verdict;
+        service.saveTransaction(transaction);
+
+        return new ResponseEntity<>(verdict, HttpStatus.OK);
     }
 }

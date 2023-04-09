@@ -11,8 +11,8 @@ public class AntifraudConfiguration {
 
     @Bean
     public IgniteClient igniteClient() {
-        ClientConfiguration cfg = new ClientConfiguration().setAddresses("online:10800");
-        //ClientConfiguration cfg = new ClientConfiguration().setAddresses("localhost:10800");
+       // ClientConfiguration cfg = new ClientConfiguration().setAddresses("online:10800");
+        ClientConfiguration cfg = new ClientConfiguration().setAddresses("localhost:10800");
         return Ignition.startClient(cfg);
     }
 }
