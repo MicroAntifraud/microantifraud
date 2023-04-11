@@ -1,31 +1,28 @@
 package ru.spc.onlinecache.ingnatecache;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ignite.cache.store.CacheStore;
 import org.apache.ignite.lang.IgniteBiInClosure;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
-import ru.spc.onlinecache.kafka.KafkaTopicConfig;
+import org.springframework.jdbc.core.JdbcTemplate;
+import ru.spc.onlinecache.repo.MyRepo;
 import ru.spc.onlinecache.requesthandler.Transaction;
 
 import javax.cache.Cache;
 import javax.cache.integration.CacheLoaderException;
 import javax.cache.integration.CacheWriterException;
+import java.sql.SQLException;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
-@FieldDefaults(level = AccessLevel.PRIVATE)
 @Slf4j
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class MyCacheStore implements CacheStore<Long, Transaction> {
-    @Autowired
-    KafkaTemplate<Long, Transaction> template;
-    @Autowired
-    KafkaTopicConfig topicConfig;
+    private final MyRepo repo;
 
 
     @Override
@@ -45,16 +42,27 @@ public class MyCacheStore implements CacheStore<Long, Transaction> {
 
     @Override
     public Map<Long, Transaction> loadAll(Iterable<? extends Long> keys) throws CacheLoaderException {
-        return null;
+        System.out.println("================LOAD=============");
+        Map<Long, Transaction> map = new HashMap<>();
+        try {
+            repo.findAll().forEach(tr -> map.put(tr.getRequestId(), tr));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return map;
     }
 
     @Override
     public void write(Cache.Entry<? extends Long, ? extends Transaction> entry) throws CacheWriterException {
+
+        System.out.println("===============WRITTE===========");
         log.info("Receive and write cache message with key - "
                 + entry.getKey() + " ================ " + " value " + entry.getValue());
-        template.send(topicConfig.getTopic().name(), entry.getKey(), entry.getValue());
-        log.info("Send to topic " + topicConfig.getTopic().name() +
-                " - message with key - " + entry.getKey() + " and value - " + entry.getValue());
+        try {
+            repo.save(entry.getKey(), entry.getValue());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

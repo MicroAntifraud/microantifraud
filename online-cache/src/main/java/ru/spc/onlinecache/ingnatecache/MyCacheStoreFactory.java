@@ -1,21 +1,18 @@
 package ru.spc.onlinecache.ingnatecache;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import lombok.AllArgsConstructor;
 import org.apache.ignite.cache.store.CacheStore;
-import org.springframework.stereotype.Service;
+import ru.spc.onlinecache.repo.MyRepo;
 import ru.spc.onlinecache.requesthandler.Transaction;
 
 import javax.cache.configuration.Factory;
 
-@Service
-@RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@AllArgsConstructor
 public class MyCacheStoreFactory implements Factory<CacheStore<Long, Transaction>> {
+    private final MyRepo repo;
 
     @Override
     public CacheStore<Long, Transaction> create() {
-        return new MyCacheStore();
+        return new MyCacheStore(repo);
     }
 }

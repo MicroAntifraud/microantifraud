@@ -7,27 +7,23 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ru.spc.requesthandler.dto.ResponseDto;
 import ru.spc.requesthandler.model.Transaction;
 import ru.spc.requesthandler.service.AntifraudService;
 
 @RestController
-@RequestMapping("api/v1/")
+@RequestMapping("/api/v1/")
 public class AntiFraudController {
-    @Autowired
-    private AntifraudService service;
+    private final AntifraudService service;
 
     public AntiFraudController(AntifraudService service) {
         this.service = service;
     }
 
     @PostMapping("antifraud")
-    public ResponseEntity<String> checkTransaction(@RequestBody Transaction transaction) {
-        String verdict = service.getVerdict(transaction);
-        if (verdict == null) {
-            return new ResponseEntity<>("lol", HttpStatus.OK);
-        }
+    public ResponseEntity<ResponseDto> checkTransaction(@RequestBody Transaction transaction) {
+        ResponseDto verdict = service.getVerdict(transaction);
         service.saveTransaction(transaction);
-
         return new ResponseEntity<>(verdict, HttpStatus.OK);
     }
 }
