@@ -1,37 +1,40 @@
 package ru.spc.onlinecache.ingnatecache;
 
-import lombok.AccessLevel;
-import lombok.experimental.FieldDefaults;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.core.KafkaTemplate;
-import ru.spc.onlinecache.requesthandler.Transaction;
+import ru.spc.onlinecache.repo.MyRepo;
+import ru.spc.requesthandler.Transaction;
 
 import javax.cache.expiry.Duration;
 import javax.cache.expiry.ModifiedExpiryPolicy;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
  @Configuration
- @FieldDefaults(level = AccessLevel.PRIVATE)
-    public class AntifraudConfiguration {
+ public class AntifraudConfiguration {
 
-
-     @Bean
-     public MyCacheStore cacheStore() {
-         return new MyCacheStore();
+     @Bean("myJdbc")
+     public PGSimpleDataSource myDataSource() throws SQLException {
+         PGSimpleDataSource dataSource = new PGSimpleDataSource();
+         dataSource.setUrl("jdbc:postgresql://persist:5432/postgres");
+         //dataSource.setUrl("jdbc:postgresql://localhost:5432/postgres");
+         dataSource.setUser("postgres");
+         dataSource.setPassword("password123");
+         dataSource.getConnection();
+         return dataSource;
      }
 
      @Bean
-     public MyCacheStoreFactory factory() {
-         return new MyCacheStoreFactory();
+     public MyCacheStoreFactory factory(MyRepo repo) {
+         return new MyCacheStoreFactory(repo);
      }
 
      @Bean
@@ -45,10 +48,8 @@ import java.util.concurrent.TimeUnit;
                  .addQueryField("amount", Integer.class.getName(), null);
          cacheConfiguration.setQueryEntities(Arrays.asList(queryEntity));
          cacheConfiguration.setWriteThrough(true);
-         cacheConfiguration.setReadThrough(true);
          cacheConfiguration.setExpiryPolicyFactory(ModifiedExpiryPolicy.factoryOf(new Duration(TimeUnit.SECONDS, 60)));
          IgniteConfiguration igniteConfiguration = new IgniteConfiguration();
-         igniteConfiguration.setPeerClassLoadingEnabled(true);
          igniteConfiguration.setDiscoverySpi(new TcpDiscoverySpi().setLocalAddress("127.0.0.1"));
          igniteConfiguration.setWorkDirectory("/tmp");
          igniteConfiguration.setCacheConfiguration(cacheConfiguration);

@@ -1,4 +1,4 @@
-package ru.spc.onlinecache.requesthandler;
+package ru.spc.requesthandler;
 
 import lombok.Data;
 

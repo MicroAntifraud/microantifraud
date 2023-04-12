@@ -1,30 +1,59 @@
 package ru.spc.requesthandler.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.ignite.cache.query.QueryCursor;
+import org.apache.ignite.cache.query.SqlFieldsQuery;
+import org.apache.ignite.client.ClientCache;
+import org.apache.ignite.client.IgniteClient;
 import org.springframework.stereotype.Service;
 import ru.spc.requesthandler.dto.ResponseDto;
 import ru.spc.requesthandler.enumeration.Verdict;
 import ru.spc.requesthandler.mapper.TransactionMapper;
-import ru.spc.requesthandler.model.Transaction;
+import ru.spc.requesthandler.Transaction;
 
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+@Slf4j
 @Service
 public class AntifraudServiceImpl implements AntifraudService {
-    @Autowired
-    private TransactionMapper mapper;
+    private final Integer LIMIT = 500;
+    private final static String CACHE = "transaction";
+    private final static String QUERY = "SELECT * FROM Transaction WHERE userId = ?";
+    private final IgniteClient igniteClient;
+    private final TransactionMapper mapper;
 
-    @Override
-    public ResponseDto saveTransaction(Transaction request) {
-        ResponseDto responseDto = mapper.toDto(request);
-        if (true) {
-            responseDto.setVerdict(Verdict.valueOf("ALLOW"));
-        } else {
-            responseDto.setVerdict(Verdict.valueOf("DENY"));
+    public AntifraudServiceImpl(IgniteClient igniteClient, TransactionMapper mapper) {
+        this.igniteClient = igniteClient;
+        this.mapper = mapper;
+    }
+
+    public ResponseDto getVerdict(Transaction transaction) {
+        ResponseDto responseDto = mapper.toDto(transaction);
+        responseDto.setVerdict(Verdict.ALLOW);
+        AtomicInteger sum = new AtomicInteger(0);
+
+        ClientCache<Long, String> cache = igniteClient.cache(CACHE);
+        SqlFieldsQuery sql = new SqlFieldsQuery(QUERY).setArgs(transaction.getUserId());
+
+        try(QueryCursor<List<?>> cursor = cache.query(sql)) {
+            for (List<?> row : cursor) {
+                sum.set(sum.get() + (Integer)row.get(2));
+            }
+
         }
+
+        if (sum.get() + transaction.getAmount() > LIMIT) {
+            responseDto.setVerdict(Verdict.DENY);
+        }
+
         return responseDto;
     }
 
-    public String getVerdict(Transaction transaction) {
-
-        return "";
+    @Override
+    public void saveTransaction(Transaction transaction) {
+        ClientCache<Long, Transaction> cache = igniteClient.cache(CACHE);
+        cache.putAsync(transaction.getRequestId(), transaction);
+        log.info("Транзакция отправлена в кэш: " + transaction);
     }
 }

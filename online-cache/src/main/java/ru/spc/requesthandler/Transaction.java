@@ -1,4 +1,4 @@
-package ru.spc.requesthandler.model;
+package ru.spc.requesthandler;
 
 import lombok.Data;
 

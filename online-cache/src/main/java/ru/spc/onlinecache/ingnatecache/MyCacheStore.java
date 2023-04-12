@@ -1,36 +1,40 @@
 package ru.spc.onlinecache.ingnatecache;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ignite.cache.store.CacheStore;
 import org.apache.ignite.lang.IgniteBiInClosure;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
-import ru.spc.onlinecache.kafka.KafkaTopicConfig;
-import ru.spc.onlinecache.requesthandler.Transaction;
+import ru.spc.onlinecache.repo.MyRepo;
+import ru.spc.requesthandler.Transaction;
 
 import javax.cache.Cache;
 import javax.cache.integration.CacheLoaderException;
 import javax.cache.integration.CacheWriterException;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 
-@FieldDefaults(level = AccessLevel.PRIVATE)
 @Slf4j
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class MyCacheStore implements CacheStore<Long, Transaction> {
-    @Autowired
-    KafkaTemplate<Long, Transaction> template;
-    @Autowired
-    KafkaTopicConfig topicConfig;
+    private final MyRepo repo;
 
 
     @Override
     public void loadCache(IgniteBiInClosure<Long, Transaction> igniteBiInClosure, @Nullable Object... objects) throws CacheLoaderException {
+        log.info("Загружаем данные из базы в кэш: ");
+        try {
+            Objects.requireNonNull(repo.findAll(), "Из базы ничего не получили").forEach(tr -> {
+                log.info("Запись из базы: " + tr.getRequestId()  + " : " + tr);
+                igniteBiInClosure.apply(tr.getRequestId(), tr);
+                    }
+            );
 
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -44,17 +48,19 @@ public class MyCacheStore implements CacheStore<Long, Transaction> {
     }
 
     @Override
-    public Map<Long, Transaction> loadAll(Iterable<? extends Long> keys) throws CacheLoaderException {
+    public Map<Long, Transaction> loadAll(Iterable<? extends Long> iterable) throws CacheLoaderException {
         return null;
     }
 
     @Override
     public void write(Cache.Entry<? extends Long, ? extends Transaction> entry) throws CacheWriterException {
-        log.info("Receive and write cache message with key - "
-                + entry.getKey() + " ================ " + " value " + entry.getValue());
-        template.send(topicConfig.getTopic().name(), entry.getKey(), entry.getValue());
-        log.info("Send to topic " + topicConfig.getTopic().name() +
-                " - message with key - " + entry.getKey() + " and value - " + entry.getValue());
+        log.info("Записали сообщение в кэш, отправляем базу данных: "
+                + entry.getKey() + " : " + entry.getValue());
+        try {
+            repo.save(entry.getKey(), entry.getValue());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
