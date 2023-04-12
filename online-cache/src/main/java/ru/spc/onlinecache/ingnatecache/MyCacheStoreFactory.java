@@ -3,7 +3,7 @@ package ru.spc.onlinecache.ingnatecache;
 import lombok.AllArgsConstructor;
 import org.apache.ignite.cache.store.CacheStore;
 import ru.spc.onlinecache.repo.MyRepo;
-import ru.spc.onlinecache.requesthandler.Transaction;
+import ru.spc.requesthandler.Transaction;
 
 import javax.cache.configuration.Factory;
 

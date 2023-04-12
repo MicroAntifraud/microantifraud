@@ -1,17 +1,18 @@
 package ru.spc.onlinecache.repo;
 
+import lombok.extern.slf4j.Slf4j;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import ru.spc.onlinecache.requesthandler.Transaction;
+import ru.spc.requesthandler.Transaction;
 
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.List;
 
+@Slf4j
 @Service
 public class MyRepo implements Serializable {
     private final PGSimpleDataSource transactionRepo;
@@ -22,20 +23,25 @@ public class MyRepo implements Serializable {
     }
 
     public List<Transaction> findAll() throws SQLException {
+        List<Transaction> result = null;
+        try {
+        result = getTemplate().query("SELECT * FROM transaction", (rs, rowNum) -> {
+            Transaction transaction = new Transaction();
+            transaction.setRequestId(rs.getLong(1));
+            transaction.setUserId(rs.getInt(2));
+            transaction.setAmount(rs.getInt(3));
+            return transaction;
+        });
 
-        getTemplate().queryForObject("SELECT * FROM transaction", Transaction.class);
-
-        return Collections.emptyList();
+        } catch (Exception e) {
+           log.error("Не удалось получить данные из базы, возможно она пустая - {}", e);
+        }
+        return result;
     }
 
     public void save(Long id, Transaction transaction) throws SQLException {
-
-
-
-        System.out.println("=========SAVE============" + transaction);
-      //  template.update("INSERT INTO transaction VALUES (?, ?, ?, ?)", transaction.getRequestId(), transaction.getUserId());
-
-
+        getTemplate().update("DELETE FROM transaction WHERE id=?", id);
+        getTemplate().update("INSERT INTO transaction VALUES (?, ?, ?)", id, transaction.getUserId(), transaction.getAmount());
     }
 
     private JdbcTemplate getTemplate() throws SQLException {

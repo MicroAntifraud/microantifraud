@@ -1,5 +1,6 @@
 package ru.spc.requesthandler.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.client.ClientCache;
@@ -8,11 +9,12 @@ import org.springframework.stereotype.Service;
 import ru.spc.requesthandler.dto.ResponseDto;
 import ru.spc.requesthandler.enumeration.Verdict;
 import ru.spc.requesthandler.mapper.TransactionMapper;
-import ru.spc.requesthandler.model.Transaction;
+import ru.spc.requesthandler.Transaction;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Slf4j
 @Service
 public class AntifraudServiceImpl implements AntifraudService {
     private final Integer LIMIT = 500;
@@ -52,5 +54,6 @@ public class AntifraudServiceImpl implements AntifraudService {
     public void saveTransaction(Transaction transaction) {
         ClientCache<Long, Transaction> cache = igniteClient.cache(CACHE);
         cache.putAsync(transaction.getRequestId(), transaction);
+        log.info("Транзакция отправлена в кэш: " + transaction);
     }
 }
