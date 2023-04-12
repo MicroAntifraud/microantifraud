@@ -15,15 +15,18 @@ import java.util.Map;
 @AllArgsConstructor
 public class StartConfiguration {
     private final Ignite ignite;
+    private final LoadToggle loadToggle;
 
     @EventListener(ApplicationReadyEvent.class)
     public void loadCache () {
-        Map<Long, Transaction> fromPersist = new HashMap<>();
-        IgniteCache<Long, Transaction> cache = ignite.cache("transaction");
-        cache.loadCache((key, value) -> {
-            fromPersist.put(key, value);
-            return true;
-        }, null);
-        cache.putAll(fromPersist);
+        if (loadToggle.isLoad()) {
+            Map<Long, Transaction> fromPersist = new HashMap<>();
+            IgniteCache<Long, Transaction> cache = ignite.cache("transaction");
+            cache.loadCache((key, value) -> {
+                fromPersist.put(key, value);
+                return true;
+            }, null);
+            cache.putAll(fromPersist);
+        }
     }
 }
